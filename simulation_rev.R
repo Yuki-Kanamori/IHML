@@ -8,7 +8,7 @@ set.seed(1)
 # Sim <- 100    # number of iterations
 Sim <- 1
 
-pred.y <- pred.a <- NULL     # true contribution
+pred.y <- pred.a <- NULLgit      # true contribution
 res.y <- res.a <- NULL       # contribution estimated by ML
 
 for (i in 1:Sim){
