@@ -4,6 +4,7 @@ library(RandomFields)
 library(mapproj)
 library(fields)
 require(tidyverse)
+set.seed(261)
 
 ################################################################
 ###
@@ -20,10 +21,21 @@ y <- runif(500, 0, 2)
 
 set.seed(261)
 # Simulation of a spatial Gaussian random field:
-data <- RFsim(x, y, corrmodel="matern", param=list(smooth=0.5,
-                                                   mean=0,sill=1,scale=0.2,nugget=0))$data
+CorrelationParam("matern")
+matern <- RFsim(x, y, corrmodel = "matern", grid = TRUE, param = list(smooth = 0.5,
+                                                   mean = 0, sill = 1, scale = 0.2, nugget = 0))$data
+mat = matern %>% data.frame() %>% gather(key = x, value = sst, 1:31) %>% 
+    mutate(x = rep(1:31, each = 31), y = rep(seq(1, 31, 1), 31))
+summary(mat)
+mat$sst = scale(mat$sst)
+colnames(mat)
 
-
+require(ggplot2)
+g = ggplot(mat, aes(x = x, y = y, fill = sst))
+t = geom_tile()
+#f = facet_wrap(~ year, ncol = 5)
+c = scale_fill_gradientn(colours = c("black", "blue", "cyan", "green", "yellow", "orange", "red", "darkred"))
+g+t+c+theme_bw()+labs(fill = "scaled SST")
 
 ################################################################
 ###
@@ -42,7 +54,7 @@ times <- seq(1, 10, 1)
 #
 # Simulation of a spatial Gaussian random field:
 sim <- RFsim(x, y, times, corrmodel = "exp_exp", grid = TRUE,
-             param=list(nugget = 0, mean = 0, scale_s = 0.3,
+             param = list(nugget = 0, mean = 0, scale_s = 0.3,
                         scale_t = 0.5, sill = 1))$data
 # Spatial simulated data at first temporal instant
 sim[,,1]
