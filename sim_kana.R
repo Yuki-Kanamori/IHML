@@ -34,25 +34,77 @@ sst_t <- scale(sst_t)   # normalization
 # SST(s)
 # Define the spatial-coordinates of the points:
 set.seed(261)
-x <- runif(500, 0, 2)
-y <- runif(500, 0, 2)
+x = rep(1:15)
+y = rep(1:15)
+
+size = length(x)
+size*size
 
 # Simulation of a spatial Gaussian random field:
 CorrelationParam("matern")
-matern <- RFsim(x, y, corrmodel = "matern", grid = TRUE, 
-                param = list(smooth = 1, mean = 0, sill = 1, scale = 0.2, nugget = 0))$data
+matern_sst <- RFsim(x, y, corrmodel = "matern", grid = TRUE, 
+                param = list(smooth = 1, mean = 0, sill = 0.5, scale = 1, nugget = 0))$data
+
+### heat map
+mat_sst = matern_sst %>% data.frame() %>% gather(key = x, value = sst, 1:size) %>% 
+  mutate(x = rep(1:size, each = size), y = rep(seq(1, size, 1), size))
+summary(mat_sst)
+mat_sst$sst = scale(mat_sst$sst)
+colnames(mat_sst)
+
+require(ggplot2)
+g = ggplot(mat_sst, aes(x = x, y = y, fill = sst))
+t = geom_tile()
+c = scale_fill_gradientn(colours = c("black", "blue", "cyan", "green", "yellow", "orange", "red", "darkred"))
+g+t+c+theme_bw()+labs(fill = "Scaled SST")
+
+summary(matern_sst)
+sst_s = mat_sst %>% spread(key = x, value = sal) %>% select(-y) %>% as.matrix()
+
+# sst(s,t)
 
 
 
-# SAL (Salinity)
-n.area <- 50     # number of area
-area <- 1:n.area    # area index
+
+# sal(t)
+n.year <- 50     # number of year
+year <- 1:n.year    # year index
 a.sal <- 10     #  intercept of sal
 b.sal <- 0.2    #    trend of sal
 sigma.sal <- 2    # variation in sal
 
-sal <- rnorm(n.area, a.sal+b.sal*area, sigma.sal)       # sal realization
-sal <- scale(sal)     # normalization
+sal_t <- rnorm(n.year, a.sal+b.sal*year, sigma.sal)       # sal realization
+sal_t <- scale(sal_t)     # normalization
+
+# sal(s)
+# Define the spatial-coordinates of the points:
+set.seed(260)
+x = rep(1:15)
+y = rep(1:15)
+
+size = length(x)
+size*size
+
+# Simulation of a spatial Gaussian random field:
+CorrelationParam("matern")
+matern_sal <- RFsim(x, y, corrmodel = "matern", grid = TRUE, 
+                    param = list(smooth = 1, mean = 0, sill = 0.5, scale = 1, nugget = 0))$data
+
+### heat map
+mat_sal = matern_sal %>% data.frame() %>% gather(key = x, value = sal, 1:size) %>% 
+  mutate(x = rep(1:size, each = size), y = rep(seq(1, size, 1), size))
+summary(mat_sal)
+mat_sal$sal = scale(mat_sal$sal)
+colnames(mat_sal)
+
+require(ggplot2)
+g = ggplot(mat_sal, aes(x = x, y = y, fill = sal))
+t = geom_tile()
+c = scale_fill_gradientn(colours = c("black", "blue", "cyan", "green", "yellow", "orange", "red", "darkred"))
+g+t+c+theme_bw()+labs(fill = "Scaled sal")
+
+summary(matern_sal)
+sal_s = mat_sal %>% spread(key = x, value = sal) %>% select(-y) %>% as.matrix()
 
 
 
