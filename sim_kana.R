@@ -93,8 +93,8 @@ interact <- as.numeric(scale(outer(year.effect, area.effect)))+matrix(rnorm(n.ye
 
 
 # Density -------------------------------------------------------
-# d(s,t)
-dens <- matrix(year.effect,nrow=n.year,ncol=n.area)+matrix(area.effect,nrow=n.year,ncol=n.area,byrow=TRUE)+interact   # realized density
+# d(s,t): realized density
+dens <- matrix(year.effect,nrow=n.year,ncol=n.area)+matrix(area.effect,nrow=n.year,ncol=n.area,byrow=TRUE)+interact
 
 rownames(dens) <- 1:n.year
 colnames(dens) <- 1:n.area
@@ -107,3 +107,77 @@ dens.y <- rowMeans(dens)
 dens.a <- sweep(dens,1,rowMeans(dens),FUN="-")
 
 
+
+# boosting ------------------------------------------------------
+require(tidyverse)
+require(xgboost)
+require(Matrix)
+require(caret)
+#require(EIX)
+#require(car)
+require(mlr)
+require(doParallel)
+detectCores() # 4-cores
+cl <- makePSOCKcluster(detectCores())
+registerDoParallel(cl)
+
+
+# tune the hyper params -----------------------------------------
+## not allow containing NA in data
+
+# make data for tuning
+d = data.frame(dens) %>% gather(key = year, value = dens, 1:50) %>% mutate(year = rep(1:50, each = 50), site = rep(seq(1,50,1), 50))
+
+e1 = data.frame(sst) %>% mutate(year = rep(1:50))
+e2 = data.frame(sal) %>% mutate(year = rep(1:50))
+
+d = merge(d, e1, by = "year")
+d = merge(d, e2, by = "year") 
+d2 = d %>% select(-year, -site)
+
+tuning = train(
+  dens ~ .,
+  data = d2,
+  method = "xgbTree",
+  preProcess = c("center", "scale"),
+  trControl = trainControl(method = "cv"),
+  tuneLength = 5
+)
+
+#results
+best_tune = tuning$bestTune
+plot(tuning)
+
+params = list(
+  booster           = 'gbtree',
+  objective         = 'reg:linear',
+  eval_metric       = 'mae',
+  eta               = best_tune$eta,
+  gamma             = best_tune$gamma,
+  max_depth         = best_tune$max_depth,
+  min_child_weight  = best_tune$min_child_weight,
+  subsample         = best_tune$subsample,
+  colsample_bytree  = best_tune$colsample_bytree
+  )
+
+summary(d2)
+df = normalizeFeatures(d2, target = "dens")
+summary(df)
+
+full = xgboost(
+  data = df %>% select(-dens) %>% as.matrix(),
+  label = df$dens,
+  nrounds = best_tune$nrounds,
+  params = params)
+pred_full = predict(model = full, data = df %>% select(-dens) %>% as.matrix())
+
+  
+model = get(paste0("model_sar_t", i))
+data = df
+data = data %>% filter(year == i) %>% select(-year,-month,-km,-knot_i)
+
+pred = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
+colnames(pred) = c("pred_t", "obs")
+pred = cbind(pred, filter(df, year == i) %>% select(year,month,km,knot_i)) %>% mutate(year = paste0(i))
+
+pred_sar_t = rbind(pred_sar_t, pred)
