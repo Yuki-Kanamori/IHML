@@ -21,7 +21,7 @@ res.y <- res.a <- NULL       # contribution estimated by ML
 # env(s) ~ MVN(0, Σ)
 # ΣはMatérn関数(RFノイズはありで，localノイズは無し)
 
-# SST(t)
+### SST(t)
 n.year <- 50     # number of year
 year <- 1:n.year    # year index
 a.sst <- 5    #   intercept of sst 
@@ -62,11 +62,14 @@ summary(matern_sst)
 sst_s = mat_sst %>% spread(key = x, value = sal) %>% select(-y) %>% as.matrix()
 
 # sst(s,t)
+sst_st = array(NA, dim = c(size,size,n.year))
+for(i in 1:n.year){
+  sst_st[,,i] = sst_t[i]*sst_s
+}
 
 
 
-
-# sal(t)
+### sal(t)
 n.year <- 50     # number of year
 year <- 1:n.year    # year index
 a.sal <- 10     #  intercept of sal
@@ -106,7 +109,11 @@ g+t+c+theme_bw()+labs(fill = "Scaled sal")
 summary(matern_sal)
 sal_s = mat_sal %>% spread(key = x, value = sal) %>% select(-y) %>% as.matrix()
 
-
+# sal(s,t)
+sal_st = array(NA, dim = c(size,size,n.year))
+for(i in 1:n.year){
+  sal_st[,,i] = sal_t[i]*sal_s
+}
 
 # Year from SST and SAL -----------------------------------------
 intercept.year <- 2    # intercept of year effect
