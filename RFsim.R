@@ -3,6 +3,7 @@ library(CompRandFld)
 library(RandomFields)
 library(mapproj)
 library(fields)
+require(tidyverse)
 
 ################################################################
 ###
