@@ -1,17 +1,47 @@
-pred.y <- pred.a <- NULLgit      # true contribution
+
+# packages ------------------------------------------------------
+library(CompRandFld)
+library(RandomFields)
+library(mapproj)
+library(fields)
+require(tidyverse)
+
+
+ 
+
+pred.y <- pred.a <- NULL      # true contribution
 res.y <- res.a <- NULL       # contribution estimated by ML
 
 
 # simulated data ------------------------------------------------
-# SST
+# env(s,t) = env(t) + env(s) (+ env(s,t))
+# env(t) ~ N(mu, sigma)
+# mu = 5+0.4*Year / mu = 10+0.2*Year
+# 
+# env(s) ~ MVN(0, Σ)
+# ΣはMatérn関数(RFノイズはありで，localノイズは無し)
+
+# SST(t)
 n.year <- 50     # number of year
 year <- 1:n.year    # year index
 a.sst <- 5    #   intercept of sst 
 b.sst <- 0.4     #   trend of sst
 sigma.sst <- 3     # variation in sst
 
-sst <- rnorm(n.year, a.sst + b.sst*year, sigma.sst)     # sst realization
-sst <- scale(sst)   # normalization
+sst_t <- rnorm(n.year, a.sst + b.sst*year, sigma.sst)     # sst realization
+sst_t <- scale(sst_t)   # normalization
+
+# SST(s)
+# Define the spatial-coordinates of the points:
+set.seed(261)
+x <- runif(500, 0, 2)
+y <- runif(500, 0, 2)
+
+# Simulation of a spatial Gaussian random field:
+CorrelationParam("matern")
+matern <- RFsim(x, y, corrmodel = "matern", grid = TRUE, 
+                param = list(smooth = 1, mean = 0, sill = 1, scale = 0.2, nugget = 0))$data
+
 
 
 # SAL (Salinity)
