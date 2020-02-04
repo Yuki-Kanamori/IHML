@@ -169,7 +169,8 @@ mean.year.effect.sal <- intercept.year+mean(a.sst.to.year*sst+b.sst.to.year*sst^
 
 # realized year effect = normalized mean year effect + variation
 # year.effect <- as.numeric(scale(mean.year.effect))+rnorm(n.year,0,sigma.year)    
-year_noize = rnorm(n.year,0,sigma.year) 
+# year_noize = rnorm(n.year,0,sigma.year) 
+year_noize = array(rnorm(size*size*n.year,0,sigma.year), dim = c(size, size, n.year)) 
 year.effect = (mean.year.effect - mean(mean.year.effect))/sd(mean.year.effect) + year_noize
 
 # contribution of sst and sal for year
@@ -198,8 +199,8 @@ mean.area.effect.sal <- intercept.area+mean(a.sst.to.area*sst+b.sst.to.area*sst^
 
 # realized area effect = normalized mean area effect + variation
 # area.effect <- as.numeric(scale(mean.area.effect))+rnorm(n.area,0,sigma.area) 
-area.effect <- as.numeric(scale(mean.area.effect))+rnorm(size*size,0,sigma.area)
-
+area_noize = array(rnorm(size*size*n.year, 0, sigma.area), dim = c(size, size, n.year))
+area.effect = (mean.area.effect - mean(mean.area.effect))/sd(mean.area.effect) + area_noize
 
 # contribution of sst and sal for area
 predict.area <- c(exp(-0.5*log(sum((area.effect-scale(mean.area.effect.sst))^2))),exp(-0.5*log(sum((area.effect-scale(mean.area.effect.sal))^2))))
