@@ -15,8 +15,9 @@ res.y <- res.a <- NULL       # contribution estimated by ML
 
 # simulated data ------------------------------------------------
 # env(s,t) = env(t) + env(s) (+ env(s,t))
+# 
 # env(t) ~ N(mu, sigma)
-# mu = 5+0.4*Year / mu = 10+0.2*Year
+# mu_sst = 5+0.4*Year / mu_sal = 10+0.2*Year
 # 
 # env(s) ~ MVN(0, Σ)
 # ΣはMatérn関数(RFノイズはありで，localノイズは無し)
@@ -29,7 +30,7 @@ b.sst <- 0.4     #   trend of sst
 sigma.sst <- 3     # variation in sst
 
 sst_t <- rnorm(n.year, a.sst + b.sst*year, sigma.sst)     # sst realization
-sst_t <- scale(sst_t)   # normalization
+#sst_t <- scale(sst_t)   # normalization
 
 # SST(s)
 # Define the spatial-coordinates of the points:
@@ -59,13 +60,45 @@ c = scale_fill_gradientn(colours = c("black", "blue", "cyan", "green", "yellow",
 g+t+c+theme_bw()+labs(fill = "Scaled SST")
 
 summary(matern_sst)
-sst_s = mat_sst %>% spread(key = x, value = sal) %>% select(-y) %>% as.matrix()
+sst_s = mat_sst %>% spread(key = x, value = sst) %>% select(-y) %>% as.matrix()
 
 # sst(s,t)
 sst_st = array(NA, dim = c(size,size,n.year))
 for(i in 1:n.year){
   sst_st[,,i] = sst_t[i]*sst_s
 }
+
+# normalization
+sst = (sst_st - mean(sst_st))/sd(sst_st)
+
+
+# ####
+# # ベクトル
+# x <- c(1,2,3,4,5)
+# zx <- (x - mean(x))/sd(x)
+# zx
+# scale(x)
+# 
+# # 行列
+# m <- matrix(1:9,3,3)
+# zm = (m-mean(m))/sd(m)
+# zm
+# 
+# m2 = rep(1:9)
+# zm2 = (m2-mean(m2))/sd(m2)
+# zm2
+# summary(zm2)
+# 
+# # 配列
+# a = array(1:8, dim = c(2,2,2))
+# za = (a-mean(a))/sd(a)
+# za
+# 
+# a2 = rep(1:8)
+# za2 = (a2-mean(a2))/sd(a2)
+# za2
+# summary(za2)
+# ####
 
 
 
@@ -115,6 +148,8 @@ for(i in 1:n.year){
   sal_st[,,i] = sal_t[i]*sal_s
 }
 
+sal = (sal_st - mean(sal_st))/sd(sal_st)
+
 # Year from SST and SAL -----------------------------------------
 intercept.year <- 2    # intercept of year effect
 a.sst.to.year <- 0.2    # effect of sst for year
@@ -133,8 +168,9 @@ mean.year.effect.sst <- intercept.year+a.sst.to.year*sst+b.sst.to.year*sst^2+mea
 mean.year.effect.sal <- intercept.year+mean(a.sst.to.year*sst+b.sst.to.year*sst^2)+a.sal.to.year*sal+b.sal.to.year*sal^2
 
 # realized year effect = normalized mean year effect + variation
-year.effect <- as.numeric(scale(mean.year.effect))+rnorm(n.year,0,sigma.year)    
-
+# year.effect <- as.numeric(scale(mean.year.effect))+rnorm(n.year,0,sigma.year)    
+year_noize = rnorm(n.year,0,sigma.year) 
+year.effect = (mean.year.effect - mean(mean.year.effect))/sd(mean.year.effect) + year_noize
 
 # contribution of sst and sal for year
 predict.year <- c(exp(-0.5*log(sum((year.effect-scale(mean.year.effect.sst))^2))),exp(-0.5*log(sum((year.effect-scale(mean.year.effect.sal))^2))))
@@ -161,7 +197,8 @@ mean.area.effect.sst <- intercept.area+a.sst.to.area*sst+b.sst.to.area*sst^2+mea
 mean.area.effect.sal <- intercept.area+mean(a.sst.to.area*sst+b.sst.to.area*sst^2)+a.sal.to.area*sal+b.sal.to.area*sal^2
 
 # realized area effect = normalized mean area effect + variation
-area.effect <- as.numeric(scale(mean.area.effect))+rnorm(n.area,0,sigma.area) 
+# area.effect <- as.numeric(scale(mean.area.effect))+rnorm(n.area,0,sigma.area) 
+area.effect <- as.numeric(scale(mean.area.effect))+rnorm(size*size,0,sigma.area)
 
 
 # contribution of sst and sal for area
