@@ -202,9 +202,9 @@ mean.area.effect.sal <- intercept.area+mean(a.sst.to.area*sst+b.sst.to.area*sst^
 area_noize = array(rnorm(size*size*n.year, 0, sigma.area), dim = c(size, size, n.year))
 area.effect = (mean.area.effect - mean(mean.area.effect))/sd(mean.area.effect) + area_noize
 
-# contribution of sst and sal for area
-predict.area <- c(exp(-0.5*log(sum((area.effect-scale(mean.area.effect.sst))^2))),exp(-0.5*log(sum((area.effect-scale(mean.area.effect.sal))^2))))
-# normalization
+# contribution of sst and sal for area (normalization)
+#predict.area <- c(exp(-0.5*log(sum((area.effect-scale(mean.area.effect.sst))^2))),exp(-0.5*log(sum((area.effect-scale(mean.area.effect.sal))^2))))
+predict.area = c(exp(-0.5*log(sum((area.effect-(mean.area.effect.sst - mean(mean.area.effect.sst))/sd(mean.area.effect.sst))^2))),exp(-0.5*log(sum((area.effect-(mean.area.effect.sal - mean(mean.area.effect.sal))/sd(mean.area.effect.sal))^2))))
 predict.area <- predict.area/sum(predict.area)
 
 
@@ -214,10 +214,23 @@ predict.area <- predict.area/sum(predict.area)
 sigma.interact <- 0.25
 
 # (normalized) year;area interaction with additional variation
-interact <- as.numeric(scale(outer(year.effect, area.effect)))+matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area)    
+#interact <- as.numeric(scale(outer(year.effect, area.effect)))+matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area)
+# outer = outer(year.effect, area.effect): 50*50
+# scale_outer = scale(outer(year.effect, area.effect)): 50:50
+# as.numeric(scale(outer(year.effect, area.effect))): [1:2500]
+# interact: 50*50
+# matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area): 50*50
+year_area = outer(year.effect, area.effect)
+noize = array(rnorm(size*size*n.year, 0, sigma.interact), dim = c(size, size, n.year))
+interact = (year_area - mean(year_area))/sd(year_area) + noize
+interact = as.numeric(scale(outer(year.effect, area.effect)))+matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area)
 
+###
+a <- matrix(1:4, 2, 2)  
+b <- matrix(0:3, 2, 2)  
+a_b = outer(a, b)
 
-
+###
 
 # Density -------------------------------------------------------
 # d(s,t): realized density
