@@ -224,7 +224,7 @@ sigma.interact <- 0.25
 # > s_test = scale(test)
 # > ns_test = as.numeric(s_test)
 
-interact <- as.numeric(scale(outer(year.effect, area.effect)))+matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area)
+interact = as.numeric(scale(outer(year.effect, area.effect)))+matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area)
 
 
 outer = array(NA, dim = c(size, size, n.year))
