@@ -220,7 +220,24 @@ sigma.interact <- 0.25
 # as.numeric(scale(outer(year.effect, area.effect))): [1:2500]
 # interact: 50*50
 # matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area): 50*50
-year_area = outer(year.effect, area.effect)
+# > test = outer(year.effect, area.effect)
+# > s_test = scale(test)
+# > ns_test = as.numeric(s_test)
+
+interact <- as.numeric(scale(outer(year.effect, area.effect)))+matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area)
+
+
+outer = array(NA, dim = c(size, size, n.year))
+test = outer(year.effect[, ,1], area.effect[, , 1])
+　for(i in 1:n.year){
+  outer[, , i] = outer(year.effect[, , i], area.effect[, , i])
+}
+
+
+year_area = outer(year.effect, area.effect) #[15,15,50,15,15,50]
+s_year_area = scale(outer(year.effect, area.effect))
+ns_year_area = as.numeric(scale(outer(year.effect, area.effect)))
+
 noize = array(rnorm(size*size*n.year, 0, sigma.interact), dim = c(size, size, n.year))
 interact = (year_area - mean(year_area))/sd(year_area) + noize
 interact = as.numeric(scale(outer(year.effect, area.effect)))+matrix(rnorm(n.year*n.area,0,sigma.interact),nrow=n.year,ncol=n.area)
@@ -230,6 +247,9 @@ a <- matrix(1:4, 2, 2)
 b <- matrix(0:3, 2, 2)  
 a_b = outer(a, b)
 
+a <- (1:4)  
+b <- (0:3)  
+a_b = outer(a, b)
 ###
 
 # Density -------------------------------------------------------
