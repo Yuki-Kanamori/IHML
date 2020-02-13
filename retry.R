@@ -326,17 +326,8 @@ d = merge(d, e2, by = c("year", "site"))
 d2 = d %>% select(-year, -site)
 summary(d2)
 
-tuning = train(
-  dens ~ sst+sal,
-  data = d2,
-  method = "xgbTree",
-  preProcess = c("center", "scale"),
-  trControl = trainControl(method = "cv"),
-  tuneLength = 5
-)
-
 set.seed(0)
-modelXgboostTree = train(
+tuning = caret::train(
   dens ~ ., 
   data = d2,
   method = "xgbTree", 
@@ -370,15 +361,11 @@ full = xgboost(
   label = df$dens,
   nrounds = best_tune$nrounds,
   params = params)
-pred_full = predict(model = full, data = df %>% select(-dens) %>% as.matrix())
-
-
-model = get(paste0("model_sar_t", i))
+model = full
 data = df
-data = data %>% filter(year == i) %>% select(-year,-month,-km,-knot_i)
 
 pred = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
-colnames(pred) = c("pred_t", "obs")
-pred = cbind(pred, filter(df, year == i) %>% select(year,month,km,knot_i)) %>% mutate(year = paste0(i))
+colnames(pred) = c("pred", "obs")
+plot(pred$obs, pred$pred)
+cor(pred)
 
-pred_sar_t = rbind(pred_sar_t, pred)
