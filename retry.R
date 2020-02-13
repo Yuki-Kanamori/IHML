@@ -192,6 +192,9 @@ b_sal_t = 0.02
 b_sal_s = 0.5
 b_sal_st = 0.5
 
+sigma.year <- 0.3     # additional variation in year effect
+sigma.area <- 0.4     # additional variation in area effect
+
 # year effect terms
 year_effect_sst = matrix(colMeans(sst_effect + matrix(rnorm(n.site*n.site*n.year, 0, sigma.year), ncol = n.year, nrow = n.site*n.site)), ncol = n.year, nrow = n.site*n.site, byrow = TRUE) 
 year_effect_sal = matrix(colMeans(sal_effect + matrix(rnorm(n.site*n.site*n.year, 0, sigma.year), ncol = n.year, nrow = n.site*n.site)), ncol = n.year, nrow = n.site*n.site, byrow = TRUE) 
