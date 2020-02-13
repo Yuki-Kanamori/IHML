@@ -293,12 +293,14 @@ rownames(dens) = 1:(n.site*n.site)
 colnames(dens) = 1:(n.year)
  
 # year-specific and area-specific density
-dens.y <- colMeans(dens)     # year 
-dens.a = matrix(NA, ncol = n.year, nrow = n.site*n.site)
+dens.y <- colMeans(dens)     #[1:50]
+dens.a = matrix(NA, ncol = n.year, nrow = n.site*n.site) #[225,50]
 for(i in 1:n.year){
   dens.a[, i] = dens[, i] - dens.y[i]
 }
-
+dens.y = matrix(dens.y, ncol = n.year, nrow = (n.site*n.site), byrow = TRUE) %>% data.frame()
+dens.y = dens.y %>% gather(key = year, value = dens, 1:n.year) %>% mutate(year = rep(1:n.year, each = (n.site*n.site)), site = rep(seq(1, (n.site*n.site),1), n.year))
+dens.a = dens.a %>% data.frame() %>% gather(key = year, value = dens, 1:n.year) %>% mutate(year = rep(1:n.year, each = (n.site*n.site)), site = rep(seq(1, (n.site*n.site),1), n.year))
 
 # boosting ------------------------------------------------------
 require(xgboost)
@@ -361,11 +363,142 @@ full = xgboost(
   label = df$dens,
   nrounds = best_tune$nrounds,
   params = params)
+sst = xgboost(
+  data = df %>% select(-dens, -sal) %>% as.matrix(),
+  label = df$dens,
+  nrounds = best_tune$nrounds,
+  params = params)
+sal = xgboost(
+  data = df %>% select(-dens, -sst) %>% as.matrix(),
+  label = df$dens,
+  nrounds = best_tune$nrounds,
+  params = params)
+
+# predict
 model = full
 data = df
+pred_f = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
+colnames(pred_f) = c("pred", "obs")
+plot(pred_f$obs, pred_f$pred)
+cor(pred_f) #0.93
 
-pred = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
-colnames(pred) = c("pred", "obs")
-plot(pred$obs, pred$pred)
-cor(pred)
+model = sst
+data = df %>% select(-sal)
+pred_sst = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
+colnames(pred_sst) = c("pred", "obs")
+plot(pred_sst$obs, pred_sst$pred)
+cor(pred_sst) #0.43
 
+model = sal
+data = df %>% select(-sst)
+pred_sal = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
+colnames(pred_sal) = c("pred", "obs")
+plot(pred_sal$obs, pred_sal$pred)
+cor(pred_sal) #0.90
+
+
+
+dens.y = merge(dens.y, e1, by = c("year", "site"))
+dens.y = merge(dens.y, e2, by = c("year", "site")) 
+dens.y = dens.y %>% select(-year, -site)
+
+dens.a = merge(dens.a, e1, by = c("year", "site"))
+dens.a = merge(dens.a, e2, by = c("year", "site")) 
+dens.a = dens.a %>% select(-year, -site)
+
+y_sst = xgboost(
+  data = dens.y %>% select(-dens, -sal) %>% as.matrix(),
+  label = dens.y$dens,
+  nrounds = best_tune$nrounds,
+  params = params)
+y_sal = xgboost(
+  data = dens.y %>% select(-dens, -sst) %>% as.matrix(),
+  label = dens.y$dens,
+  nrounds = best_tune$nrounds,
+  params = params)
+
+a_sst = xgboost(
+  data = dens.a %>% select(-dens, -sal) %>% as.matrix(),
+  label = dens.a$dens,
+  nrounds = best_tune$nrounds,
+  params = params)
+a_sal = xgboost(
+  data = dens.a %>% select(-dens, -sst) %>% as.matrix(),
+  label = dens.a$dens,
+  nrounds = best_tune$nrounds,
+  params = params)
+
+# predict
+model = y_sst
+data = dens.y %>% select(-sal)
+pred_ysst = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
+colnames(pred_ysst) = c("pred", "obs")
+plot(pred_ysst$obs, pred_ysst$pred)
+cor(pred_ysst) #0.27
+
+model = y_sal
+data = dens.y %>% select(-sst)
+pred_ysal = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
+colnames(pred_ysal) = c("pred", "obs")
+plot(pred_ysal$obs, pred_ysal$pred)
+cor(pred_ysal) #0.28
+
+model = a_sst
+data = dens.a %>% select(-sal)
+pred_asst = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
+colnames(pred_asst) = c("pred", "obs")
+plot(pred_asst$obs, pred_asst$pred)
+cor(pred_asst) #0.30
+
+model = a_sal
+data = dens.a %>% select(-sst)
+pred_asal = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
+colnames(pred_asal) = c("pred", "obs")
+plot(pred_asal$obs, pred_asal$pred)
+cor(pred_asal) #0.93
+
+
+# contribution --------------------------------------------------
+# contribution of sst and sal for full model
+cont = c(exp(-0.5*log(sum((pred_f$obs - pred_sst$pred)^2))), exp(-0.5*log(sum((pred_f$obs - pred_sal$pred)^2))))
+cont = cont/sum(cont) #sst:sal = 0.498:0.502
+
+# contribution of sst and sal for year
+cont_y = c(exp(-0.5*log(sum((pred_sst$obs - pred_ysst$pred)^2))), exp(-0.5*log(sum((pred_sal$obs - pred_ysal$pred)^2))))
+cont_y = cont_y/sum(cont_y) #sst:sal = 0.497:0.503
+
+# contribution of sst and sal for area
+cont_a = c(exp(-0.5*log(sum((pred_sst$obs - pred_asst$pred)^2))), exp(-0.5*log(sum((pred_sal$obs - pred_asal$pred)^2))))
+cont_a = cont_a/sum(cont_a) #sst:sal = 0.568:0.5432
+
+names(cont_y) <- names(cont_a) <- c("SST","SAL")
+
+# Outputs
+pred.y <- rbind(pred.y, predict.year)   # true contribution for year
+pred.a <- rbind(pred.a, predict.area)   # true contribution for area
+
+res.y <- rbind(res.y, cont_y)    # estimated contribution for year
+res.a <- rbind(res.a, cont_a)    # estimated contribution for area
+
+colMeans(res.y)
+colMeans(res.a)
+predict.year
+predict.area
+
+year.bias <- (res.y-pred.y)/pred.y  
+area.bias <- (res.a-pred.a)/pred.a 
+
+res.bias <- data.frame(Year=year.bias[,1], Area=area.bias[,2])
+boxplot(res.bias,col="brown")
+
+
+# not revise
+dat1 <- data.frame(dens=scale(as.numeric(dens)),expand.grid(sst=sst,sal=sal))
+test1 <- randomForest(dens~sst+sal,data=dat1)
+test1
+plot(dat1$dens,predict(test1,type="response"),xlab="Observed density",ylab="Predicted density",col="blue",cex=1.2)
+abline(0,1,lwd=2,col="red",lty=2)
+importance(test1)
+varImpPlot(test1)
+contrib.y
+contrib.a
