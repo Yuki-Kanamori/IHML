@@ -154,5 +154,87 @@ for(i in 1:n.year){
 
 
 # make SST and SAL ----------------------------------------------
+# m_sst_t = matrix(sst_t, ncol = n.year, nrow = size*size, byrow = TRUE)
+# m_sst_s = matrix(sst_s, ncol = n.year, nrow = size*size)
+# summary(m_sst_s[,1] - sst_s)
+
+A1 = 2
+B1 = 0.5 #2だと0.643
+C1 = 0.5
+sst = A1*matrix(sst_t, ncol = n.year, nrow = size*size, byrow = TRUE) + B1*matrix(sst_s, ncol = n.year, nrow = size*size) + C1*sst_st
+sst = (sst - mean(sst))/sd(sst)
+
+A2 = 0.5
+B2 = 0.5
+C2 = 2
+sal = A2*matrix(sal_t, ncol = n.year, nrow = size*size, byrow = TRUE) + B2*matrix(sal_s, ncol = n.year, nrow = size*size) + C2*sal_st
+sal = (sal - mean(sal))/sd(sal)
+
+# Year from SST and SAL -----------------------------------------
+intercept.year <- 2    # intercept of year effect
+a.sst.to.year <- 200    # effect of sst for year
+b.sst.to.year <- -0.1     # effect of sst^2 for year
+a.sal.to.year <- 0.001      # effect of sal for year
+b.sal.to.year <- -0.002      # effect of sal^2 for year
+sigma.year <- 0.3     # additional variation in year effect
+
+# mean year effect
+mean.year.effect <- intercept.year + a.sst.to.year*sst + b.sst.to.year*sst^2 + a.sal.to.year*sal + b.sal.to.year*sal^2  
+
+# mean year effect by only sst (marginalizing by SAL)
+mean.year.effect.sst <- intercept.year+a.sst.to.year*sst+b.sst.to.year*sst^2+mean(a.sal.to.year*sal+b.sal.to.year*sal^2)
+
+# mean year effect by only sal (marginalizing by sst)
+mean.year.effect.sal <- intercept.year+mean(a.sst.to.year*sst+b.sst.to.year*sst^2)+a.sal.to.year*sal+b.sal.to.year*sal^2
+
+# realized year effect = normalized mean year effect + variation
+year_noize = matrix(rnorm(size*size*n.year,0,sigma.year), ncol = n.year, nrow = size*size)
+year.effect = (mean.year.effect - mean(mean.year.effect))/sd(mean.year.effect) + year_noize
+
+# contribution of sst and sal for year
+predict.year <- c(exp(-0.5*log(sum((year.effect-scale(mean.year.effect.sst))^2))),exp(-0.5*log(sum((year.effect-scale(mean.year.effect.sal))^2))))
+# normalization
+predict.year <- predict.year/sum(predict.year)
+
+
+# Area from SST and SAL -----------------------------------------
+intercept.area <- 2    # intercept of area effect
+a.sst.to.area <- 0.02    # effect of sst for area
+b.sst.to.area <- -0.03    # effect of sst^2 for area
+a.sal.to.area <- 0.2    # effect of sal for area
+b.sal.to.area <- 0.1      # effect of sal^2 for area
+sigma.area <- 0.4     # additional variation in area effect
+
+# mean area effect
+mean.area.effect <- intercept.area+a.sst.to.area*sst+b.sst.to.area*sst^2+a.sal.to.area*sal+b.sal.to.area*sal^2
+
+# mean area effect by only sst (marginalizing by sal)
+mean.area.effect.sst <- intercept.area+a.sst.to.area*sst+b.sst.to.area*sst^2+mean(a.sal.to.area*sal+b.sal.to.area*sal^2)
+
+# mean area effect by only sst (marginalizing by sal)
+mean.area.effect.sal <- intercept.area+mean(a.sst.to.area*sst+b.sst.to.area*sst^2)+a.sal.to.area*sal+b.sal.to.area*sal^2
+
+# realized area effect = normalized mean area effect + variation
+area_noize = matrix(rnorm(size*size*n.year,0,sigma.year), ncol = n.year, nrow = size*size)
+area.effect = (mean.area.effect - mean(mean.area.effect))/sd(mean.area.effect) + area_noize
+
+# contribution of sst and sal for area (normalization)
+predict.area = c(exp(-0.5*log(sum((area.effect-(mean.area.effect.sst - mean(mean.area.effect.sst))/sd(mean.area.effect.sst))^2))),exp(-0.5*log(sum((area.effect-(mean.area.effect.sal - mean(mean.area.effect.sal))/sd(mean.area.effect.sal))^2))))
+predict.area <- predict.area/sum(predict.area)
+
+
+# Density -------------------------------------------------------
+# d(s,t): realized density
+dens <- year.effect + area.effect
+
+rownames(dens) <- 1:(size*size)
+colnames(dens) <- 1:n.year
+
+
+# d(*,t): year-specific density
+dens.y <- colMeans(dens)
+
+# d(s,t)-d(*,t): area-specific density
+dens.a <- dens - dens.y
 
 
