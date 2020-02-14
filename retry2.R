@@ -178,12 +178,10 @@ gamma1 = 0.2
 gamma2 = -0.3
 gamma3 = 0.01
 gamma4 = -0.02
-sigma.year <- 0.3     # additional variation in year effect
-sigma.area <- 0.4     # additional variation in area effect
-  
-sst_effect = gamma1*sst + gamma2*sst^2 + matrix(rnorm(n.site*n.site*n.year, 0, sigma.year), ncol = n.year, nrow = n.site*n.site)
+
+sst_effect = gamma1*sst + gamma2*sst^2
 sst_effect = (sst_effect - mean(sst_effect))/sd(sst_effect)
-sal_effect = gamma3*sal + gamma4*sal^2 + matrix(rnorm(n.site*n.site*n.year, 0, sigma.area), ncol = n.year, nrow = n.site*n.site)
+sal_effect = gamma3*sal + gamma4*sal^2
 sal_effect = (sal_effect - mean(sal_effect))/sd(sal_effect)
 
 b_sst_t = 0.3
@@ -194,34 +192,30 @@ b_sal_t = 0.02
 b_sal_s = 0.5
 b_sal_st = 0.5
 
+sigma.year <- 0.3     # additional variation in year effect
+sigma.area <- 0.4     # additional variation in area effect
 
 # year effect terms
-year_effect_sst = matrix(colMeans(sst_effect), ncol = n.year, nrow = n.site*n.site, byrow = TRUE)
-year_effect_sal = matrix(colMeans(sal_effect), ncol = n.year, nrow = n.site*n.site, byrow = TRUE) 
+year_effect_sst = matrix(colMeans(sst_effect + matrix(rnorm(n.site*n.site*n.year, 0, sigma.year), ncol = n.year, nrow = n.site*n.site)), ncol = n.year, nrow = n.site*n.site, byrow = TRUE) 
+year_effect_sal = matrix(colMeans(sal_effect + matrix(rnorm(n.site*n.site*n.year, 0, sigma.year), ncol = n.year, nrow = n.site*n.site)), ncol = n.year, nrow = n.site*n.site, byrow = TRUE) 
 
 # area effect terms
-area_effect_sst = matrix(rowMeans(sst_effect), ncol = n.year, nrow = n.site*n.site)
-area_effect_sal = matrix(rowMeans(sal_effect), ncol = n.year, nrow = n.site*n.site)
+area_effect_sst = matrix(b_sst_s*(1/n.year)*rowMeans(sst_effect + matrix(rnorm(n.site*n.site*n.year, 0, sigma.area), ncol = n.year, nrow = n.site*n.site)), ncol = n.year, nrow = n.site*n.site)
+area_effect_sal = matrix(b_sal_s*(1/n.year)*rowMeans(sal_effect + matrix(rnorm(n.site*n.site*n.year, 0, sigma.area), ncol = n.year, nrow = n.site*n.site)), ncol = n.year, nrow = n.site*n.site)
 
 # interaction terms
 int_effect_sst = (sst_effect - mean(sst_effect))
 int_effect_sal = (sal_effect - mean(sal_effect))
 
 # all
-# dens = 
-#   b_sst_t*(1/n.site*n.site)*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst) + 
-#   b_sst_s*(1/n.year)*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst) + 
-#   b_sst_st*(int_effect_sst - mean(int_effect_sst))/sd(int_effect_sst) +
-#   b_sal_t*(1/n.site*n.site)*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal) + 
-#   b_sal_s*(1/n.year)*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal) + 
-#   b_sal_st*(int_effect_sal - mean(int_effect_sal))/sd(int_effect_sal)
 dens = 
-  b_sst_t*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst) + 
-  b_sst_s*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst) + 
+  b_sst_t*(1/n.site*n.site)*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst) + 
+  b_sst_s*(1/n.year)*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst) + 
   b_sst_st*(int_effect_sst - mean(int_effect_sst))/sd(int_effect_sst) +
-  b_sal_t*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal) + 
-  b_sal_s*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal) + 
+  b_sal_t*(1/n.site*n.site)*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal) + 
+  b_sal_s*(1/n.year)*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal) + 
   b_sal_st*(int_effect_sal - mean(int_effect_sal))/sd(int_effect_sal)
+
 
 
 # year effect -----------------------------------------
@@ -231,22 +225,22 @@ mean.year.effect = dens #[225, 50]
 
 # mean year effect by only sst (marginalizing by sal)
 mean.year.effect.sst = 
-  b_sst_t*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst) + 
-  mean(b_sst_s*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst)) +
-  mean(b_sst_st*(int_effect_sst - mean(int_effect_sst))/sd(int_effect_sst)) + 
-  mean(b_sal_t*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal)) + 
-  mean(b_sal_s*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal)) + 
+  b_sst_t*(1/n.site*n.site)*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst) + 
+  mean(b_sst_s*(1/n.year)*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst)) +
+  b_sst_st*(int_effect_sst - mean(int_effect_sst))/sd(int_effect_sst) + 
+  mean(b_sal_t*(1/n.site*n.site)*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal)) + 
+  mean(b_sal_s*(1/n.year)*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal)) + 
   mean(b_sal_st*(int_effect_sal - mean(int_effect_sal))/sd(int_effect_sal))
 s_y_sst = (mean.year.effect.sst - mean(mean.year.effect.sst))/sd(mean.year.effect.sst)
 
 # mean year effect by only sal (marginalizing by sst)
 mean.year.effect.sal = 
-  mean(b_sst_t*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst)) + 
-  mean(b_sst_s*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst)) + 
+  mean(b_sst_t*(1/n.site*n.site)*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst)) + 
+  mean(b_sst_s*(1/n.year)*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst)) + 
   mean(b_sst_st*(int_effect_sst - mean(int_effect_sst))/sd(int_effect_sst)) + 
-  b_sal_t*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal) + 
-  mean(b_sal_s*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal)) + 
-  mean(b_sal_st*(int_effect_sal - mean(int_effect_sal))/sd(int_effect_sal))
+  b_sal_t*(1/n.site*n.site)*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal) + 
+  mean(b_sal_s*(1/n.year)*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal)) + 
+  b_sal_st*(int_effect_sal - mean(int_effect_sal))/sd(int_effect_sal)
 s_y_sal = (mean.year.effect.sal - mean(mean.year.effect.sal))/sd(mean.year.effect.sal)
 
 # year effect
@@ -256,7 +250,7 @@ year.effect = (mean.year.effect - mean(mean.year.effect))/sd(mean.year.effect) +
 # contribution of sst and sal for year
 predict.year <- c(exp(-0.5*log(sum((year.effect-s_y_sst)^2))),exp(-0.5*log(sum((year.effect-s_y_sal)^2))))
 # normalization
-predict.year <- predict.year/sum(predict.year) #sst:sal = 0.55:0.45
+predict.year <- predict.year/sum(predict.year)
 
 
 # area effect -----------------------------------------
@@ -265,22 +259,22 @@ mean.area.effect = dens #[225, 50]
 
 # mean area effect by only sst (marginalizing by sal)
 mean.area.effect.sst = 
-  mean(b_sst_t*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst)) + 
-  b_sst_s*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst) +
-  b_sst_st*(int_effect_sst - mean(int_effect_sst))/sd(int_effect_sst) + 
-  mean(b_sal_t*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal)) + 
-  mean(b_sal_s*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal)) + 
+  mean(b_sst_t*(1/n.site*n.site)*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst)) + 
+  b_sst_s*(1/n.year)*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst) +
+  mean(b_sst_st*(int_effect_sst - mean(int_effect_sst))/sd(int_effect_sst)) + 
+  mean(b_sal_t*(1/n.site*n.site)*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal)) + 
+  mean(b_sal_s*(1/n.year)*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal)) + 
   mean(b_sal_st*(int_effect_sal - mean(int_effect_sal))/sd(int_effect_sal))
 s_a_sst = (mean.area.effect.sst - mean(mean.area.effect.sst))/sd(mean.area.effect.sst)
 
 # mean year effect by only sal (marginalizing by sst)
 mean.area.effect.sal = 
-  mean(b_sst_t*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst)) + 
-  mean(b_sst_s*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst)) + 
+  mean(b_sst_t*(1/n.site*n.site)*(year_effect_sst - mean(year_effect_sst))/sd(year_effect_sst)) + 
+  mean(b_sst_s*(1/n.year)*(area_effect_sst - mean(area_effect_sst))/sd(area_effect_sst)) + 
   mean(b_sst_st*(int_effect_sst - mean(int_effect_sst))/sd(int_effect_sst)) + 
-  mean(b_sal_t*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal)) + 
-  b_sal_s*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal) + 
-  b_sal_st*(int_effect_sal - mean(int_effect_sal))/sd(int_effect_sal)
+  mean(b_sal_t*(1/n.site*n.site)*(year_effect_sal - mean(year_effect_sal))/sd(year_effect_sal)) + 
+  b_sal_s*(1/n.year)*(area_effect_sal - mean(area_effect_sal))/sd(area_effect_sal) + 
+  mean(b_sal_st*(int_effect_sal - mean(int_effect_sal))/sd(int_effect_sal))
 s_a_sal = (mean.area.effect.sal - mean(mean.area.effect.sal))/sd(mean.area.effect.sal)
 
 # year effect
@@ -290,23 +284,23 @@ area.effect = (mean.area.effect - mean(mean.area.effect))/sd(mean.area.effect) +
 # contribution of sst and sal for year
 predict.area <- c(exp(-0.5*log(sum((area.effect-s_a_sst)^2))),exp(-0.5*log(sum((area.effect-s_a_sal)^2))))
 # normalization
-predict.area <- predict.area/sum(predict.area) #sst:sal = 0.28:0.72
+predict.area <- predict.area/sum(predict.area)
 
 
 
 # Density -------------------------------------------------------
 rownames(dens) = 1:(n.site*n.site)
 colnames(dens) = 1:(n.year)
- 
+
 # year-specific and area-specific density
-dens.y <- colMeans(dens)     #[1:50]
-dens.a = matrix(NA, ncol = n.year, nrow = n.site*n.site) #[225,50]
+dens.a <- rowMeans(dens)     #[1:50]
+dens.y = matrix(NA, ncol = n.year, nrow = n.site*n.site) #[225,50]
 for(i in 1:n.year){
-  dens.a[, i] = dens[, i] - dens.y[i]
+  dens.y[i, ] = dens[i, ] - dens.a[i]
 }
-dens.y = matrix(dens.y, ncol = n.year, nrow = (n.site*n.site), byrow = TRUE) %>% data.frame()
-dens.y = dens.y %>% gather(key = year, value = dens, 1:n.year) %>% mutate(year = rep(1:n.year, each = (n.site*n.site)), site = rep(seq(1, (n.site*n.site),1), n.year))
-dens.a = dens.a %>% data.frame() %>% gather(key = year, value = dens, 1:n.year) %>% mutate(year = rep(1:n.year, each = (n.site*n.site)), site = rep(seq(1, (n.site*n.site),1), n.year))
+dens.a = matrix(dens.a, ncol = n.year, nrow = (n.site*n.site)) %>% data.frame()
+dens.a = dens.a %>% gather(key = year, value = dens, 1:n.year) %>% mutate(year = rep(1:n.year, each = (n.site*n.site)), site = rep(seq(1, (n.site*n.site),1), n.year))
+dens.y = dens.y %>% data.frame() %>% gather(key = year, value = dens, 1:n.year) %>% mutate(year = rep(1:n.year, each = (n.site*n.site)), site = rep(seq(1, (n.site*n.site),1), n.year))
 
 # boosting ------------------------------------------------------
 require(xgboost)
@@ -393,7 +387,7 @@ data = df %>% select(-sal)
 pred_sst = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
 colnames(pred_sst) = c("pred", "obs")
 plot(pred_sst$obs, pred_sst$pred)
-cor(pred_sst) #0.43
+cor(pred_sst) #0.39
 
 model = sal
 data = df %>% select(-sst)
@@ -454,28 +448,28 @@ data = dens.a %>% select(-sal)
 pred_asst = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
 colnames(pred_asst) = c("pred", "obs")
 plot(pred_asst$obs, pred_asst$pred)
-cor(pred_asst) #0.30
+cor(pred_asst) #0.28
 
 model = a_sal
 data = dens.a %>% select(-sst)
 pred_asal = data.frame(predict(model, as.matrix(data[, -1])), data[,1])
 colnames(pred_asal) = c("pred", "obs")
 plot(pred_asal$obs, pred_asal$pred)
-cor(pred_asal) #0.93
+cor(pred_asal) #0.53
 
 
 # contribution --------------------------------------------------
 # contribution of sst and sal for full model
 cont = c(exp(-0.5*log(sum((pred_f$obs - pred_sst$pred)^2))), exp(-0.5*log(sum((pred_f$obs - pred_sal$pred)^2))))
-cont = cont/sum(cont) #sst:sal = 0.498:0.502
+cont = cont/sum(cont) #sst:sal = 0.316:0.684
 
 # contribution of sst and sal for year
 cont_y = c(exp(-0.5*log(sum((pred_sst$obs - pred_ysst$pred)^2))), exp(-0.5*log(sum((pred_sal$obs - pred_ysal$pred)^2))))
-cont_y = cont_y/sum(cont_y) #sst:sal = 0.497:0.503
+cont_y = cont_y/sum(cont_y) #sst:sal = 0.5:0.5
 
 # contribution of sst and sal for area
 cont_a = c(exp(-0.5*log(sum((pred_sst$obs - pred_asst$pred)^2))), exp(-0.5*log(sum((pred_sal$obs - pred_asal$pred)^2))))
-cont_a = cont_a/sum(cont_a) #sst:sal = 0.568:0.5432
+cont_a = cont_a/sum(cont_a) #sst:sal = 0.468:0.533
 
 names(cont_y) <- names(cont_a) <- c("SST","SAL")
 
@@ -496,9 +490,6 @@ area.bias <- (res.a-pred.a)/pred.a
 
 res.bias <- data.frame(Year=year.bias[,1], Area=area.bias[,2])
 boxplot(res.bias,col="brown")
-
-# importance
-Imp = xgb.importance(colnames(data), model = model)
 
 
 # not revise
